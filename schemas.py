@@ -1,48 +1,61 @@
 """
-Database Schemas
+Database Schemas for Psylio-style app
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model name maps to a MongoDB collection with the lowercase
+class name (e.g., User -> "user").
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional
 
-# Example schemas (replace with your own):
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    """User collection: both clients and therapists"""
+    role: str = Field(..., description="client or therapist")
+    name: str
+    email: EmailStr
+    photo_url: Optional[str] = None
+    bio: Optional[str] = None
+    specialties: List[str] = Field(default_factory=list)
+    modalities: List[str] = Field(default_factory=list)
+    languages: List[str] = Field(default_factory=list)
+    location: Optional[str] = None
+    virtual: bool = True
+    in_person: bool = False
+    fee_min: Optional[int] = None
+    fee_max: Optional[int] = None
+    years_experience: Optional[int] = None
+    certifications: List[str] = Field(default_factory=list)
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
 
-# Add your own schemas here:
-# --------------------------------------------------
+class TherapistAvailability(BaseModel):
+    therapist_id: str
+    weekday: int = Field(..., ge=0, le=6, description="0=Mon .. 6=Sun")
+    time_ranges: List[str] = Field(..., description="e.g., ['09:00-12:00','14:00-17:00']")
+    virtual: bool = True
+    in_person: bool = False
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+
+class BookingRequest(BaseModel):
+    therapist_id: str
+    client_name: str
+    client_email: EmailStr
+    note: Optional[str] = None
+    preferred_times: List[str] = Field(default_factory=list)
+    status: str = Field(default="pending", description="pending|accepted|declined|completed")
+
+
+class Message(BaseModel):
+    therapist_id: str
+    client_email: EmailStr
+    from_email: EmailStr
+    to_email: EmailStr
+    content: str
+    thread_id: Optional[str] = None
+
+
+class JournalEntry(BaseModel):
+    client_email: EmailStr
+    title: str
+    content: str
+    mood: Optional[str] = None
